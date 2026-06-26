@@ -36,6 +36,7 @@ fun HostScreen(
     val state by viewModel.state.collectAsState()
     val selectedBandwidthMB by viewModel.selectedBandwidthMB.collectAsState()
     val error by viewModel.errorMessage.collectAsState()
+    val timeLeftSeconds by viewModel.timeLeftSeconds.collectAsState()
 
     val clipboardManager = LocalClipboardManager.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -136,6 +137,50 @@ fun HostScreen(
                         Text("Generate Secure Token", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
+            } else if (state == HostState.EXPIRED) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Token Expired",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+
+                    Text(
+                        text = "This token has expired after 10 minutes of inactivity to protect your secure peer connection. Please generate a new one.",
+                        fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = { viewModel.generateToken() },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                    ) {
+                        Text("Generate New Token", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = onNavigateBack,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                    ) {
+                        Text("Go Back", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             } else {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -211,21 +256,35 @@ fun HostScreen(
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 3.dp,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 3.dp,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                                Text(
+                                    text = "Waiting for Guest to connect...",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                            val minutes = timeLeftSeconds / 60
+                            val seconds = timeLeftSeconds % 60
+                            val formattedTime = String.format("%02d:%02d", minutes, seconds)
                             Text(
-                                text = "Waiting for Guest to connect...",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                                text = "Token expires in: $formattedTime",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                             )
                         }
                     }

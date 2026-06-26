@@ -5,9 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.repository.JoinResult
 import com.example.data.repository.ShareTokenRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import com.example.data.model.ShareToken
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,6 +31,18 @@ class GuestViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(GuestState.IDLE)
     val state: StateFlow<GuestState> = _state.asStateFlow()
+
+    val activeSessions = shareTokenRepository.getActiveSharingTokens()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    fun connectToSession(token: String) {
+        _tokenInput.value = token.uppercase()
+        connect()
+    }
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()

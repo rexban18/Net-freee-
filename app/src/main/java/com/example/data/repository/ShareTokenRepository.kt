@@ -30,6 +30,7 @@ class ShareTokenRepository @Inject constructor(
 
     suspend fun createShareToken(bandwidthMB: Long): String {
         val hostUid = authRepository.getCurrentUid() ?: "local_host"
+        val hostEmail = authRepository.getCurrentUserEmail()
         var token = generateToken()
         
         try {
@@ -43,7 +44,9 @@ class ShareTokenRepository @Inject constructor(
 
             val now = System.currentTimeMillis()
             val tokenData = ShareToken(
+                token = token,
                 hostUid = hostUid,
+                hostEmail = hostEmail,
                 guestUid = null,
                 createdAt = now,
                 expiresAt = now + (10 * 60 * 1000), // 10 minutes expiry
@@ -58,7 +61,9 @@ class ShareTokenRepository @Inject constructor(
             // Fallback: Local/Simulation mode
             val now = System.currentTimeMillis()
             val tokenData = ShareToken(
+                token = token,
                 hostUid = hostUid,
+                hostEmail = hostEmail,
                 guestUid = null,
                 createdAt = now,
                 expiresAt = now + (10 * 60 * 1000),
@@ -147,6 +152,47 @@ class ShareTokenRepository @Inject constructor(
                 localTokens[token] = localToken.copy(status = status)
             }
         }
+    }
+
+    fun getActiveSharingTokens(): Flow<List<ShareToken>> = callbackFlow {
+        val registration = try {
+            tokensCollection
+                .whereEqualTo("status", "waiting")
+                .whereEqualTo("guestUid", null)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        val activeLocal = localTokens.values.filter {
+                            it.status == "waiting" && it.guestUid == null && System.currentTimeMillis() < it.expiresAt
+                        }
+                        trySend(activeLocal)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val items = snapshot.toObjects(ShareToken::class.java).filter {
+                            System.currentTimeMillis() < it.expiresAt
+                        }
+                        trySend(items)
+                    } else {
+                        val activeLocal = localTokens.values.filter {
+                            it.status == "waiting" && it.guestUid == null && System.currentTimeMillis() < it.expiresAt
+                        }
+                        trySend(activeLocal)
+                    }
+                }
+        } catch (e: Exception) {
+            val job = launch(Dispatchers.Main) {
+                while (true) {
+                    val activeLocal = localTokens.values.filter {
+                        it.status == "waiting" && it.guestUid == null && System.currentTimeMillis() < it.expiresAt
+                    }
+                    trySend(activeLocal)
+                    delay(3000)
+                }
+            }
+            awaitClose { job.cancel() }
+            return@callbackFlow
+        }
+        awaitClose { registration?.remove() }
     }
 
     fun listenToToken(token: String): Flow<ShareToken?> = callbackFlow {

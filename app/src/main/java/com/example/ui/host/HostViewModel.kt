@@ -19,6 +19,7 @@ enum class HostState {
     TOKEN_GENERATED,
     WAITING_FOR_GUEST,
     CONNECTED,
+    EXPIRED,
     ERROR
 }
 
@@ -42,7 +43,11 @@ class HostViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    private val _timeLeftSeconds = MutableStateFlow(600)
+    val timeLeftSeconds: StateFlow<Int> = _timeLeftSeconds.asStateFlow()
+
     private var tokenListenJob: Job? = null
+    private var countdownJob: Job? = null
 
     fun selectBandwidth(mb: Long) {
         _selectedBandwidthMB.value = mb
@@ -52,6 +57,7 @@ class HostViewModel @Inject constructor(
         viewModelScope.launch {
             _state.value = HostState.GENERATING
             _errorMessage.value = null
+            _timeLeftSeconds.value = 600
             try {
                 val generatedToken = shareTokenRepository.createShareToken(_selectedBandwidthMB.value)
                 _token.value = generatedToken
@@ -62,9 +68,28 @@ class HostViewModel @Inject constructor(
                 _state.value = HostState.TOKEN_GENERATED
                 
                 startWaitingForGuest(generatedToken)
+                startCountdown(generatedToken)
             } catch (e: Exception) {
                 _state.value = HostState.ERROR
                 _errorMessage.value = e.message ?: "Failed to generate token"
+            }
+        }
+    }
+
+    private fun startCountdown(generatedToken: String) {
+        countdownJob?.cancel()
+        countdownJob = viewModelScope.launch {
+            while (_timeLeftSeconds.value > 0) {
+                kotlinx.coroutines.delay(1000)
+                _timeLeftSeconds.value -= 1
+                if (_state.value == HostState.CONNECTED) {
+                    break
+                }
+            }
+            if (_timeLeftSeconds.value == 0 && _state.value == HostState.WAITING_FOR_GUEST) {
+                _state.value = HostState.EXPIRED
+                shareTokenRepository.updateTokenStatus(generatedToken, "expired")
+                tokenListenJob?.cancel()
             }
         }
     }
@@ -77,6 +102,7 @@ class HostViewModel @Inject constructor(
                 if (shareToken != null) {
                     if (shareToken.status == "connected" && shareToken.guestUid != null) {
                         _state.value = HostState.CONNECTED
+                        countdownJob?.cancel()
                     }
                 }
             }
@@ -86,5 +112,6 @@ class HostViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         tokenListenJob?.cancel()
+        countdownJob?.cancel()
     }
 }

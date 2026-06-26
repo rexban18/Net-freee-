@@ -2,8 +2,10 @@ package com.example.ui.guest
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -32,6 +34,7 @@ fun GuestScreen(
     val state by viewModel.state.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val successDetails by viewModel.joinSuccessDetails.collectAsState()
+    val activeSessions by viewModel.activeSessions.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var showScanSimDialog by remember { mutableStateOf(false) }
@@ -81,7 +84,8 @@ fun GuestScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .widthIn(max = 450.dp),
+                    .widthIn(max = 450.dp)
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
@@ -169,6 +173,105 @@ fun GuestScreen(
                                 .testTag("connect_button")
                         ) {
                             Text("Connect to Peer", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                )
+
+                Text(
+                    text = "Live Active Hosts",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.align(Alignment.Start)
+                )
+
+                if (activeSessions.isEmpty()) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "No active hosts online right now",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Ask someone to start a session to share their bandwidth.",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        activeSessions.forEach { session ->
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = session.hostEmail.ifEmpty { "Anonymous Host" },
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            SuggestionChip(
+                                                onClick = {},
+                                                label = { Text(session.token, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold) }
+                                            )
+                                            Text(
+                                                text = "Limit: ${session.bandwidthLimit} MB",
+                                                fontSize = 13.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                            )
+                                        }
+                                    }
+                                    Button(
+                                        onClick = { viewModel.connectToSession(session.token) },
+                                        contentPadding = PaddingValues(horizontal = 16.dp),
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    ) {
+                                        Text("Join", fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
                         }
                     }
                 }

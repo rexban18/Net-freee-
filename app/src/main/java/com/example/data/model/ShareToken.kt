@@ -4,7 +4,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ShareToken(
+    val token: String = "",
     val hostUid: String = "",
+    val hostEmail: String = "",
     val guestUid: String? = null,
     val createdAt: Long = 0L,
     val expiresAt: Long = 0L,
