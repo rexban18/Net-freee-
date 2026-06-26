@@ -67,6 +67,12 @@ class ActiveSessionViewModel @Inject constructor(
 
         bandwidthMeter.reset()
 
+        viewModelScope.launch {
+            BandwidthSharingService.stopEvent.collect {
+                disconnect()
+            }
+        }
+
         webRTCManager = WebRTCManager(
             context = context,
             token = token,
@@ -96,7 +102,7 @@ class ActiveSessionViewModel @Inject constructor(
                     if (state == WebRTCConnectionState.CONNECTED) {
                         startSessionTracking()
                         BandwidthSharingService.startService(
-                            context, isHost, bandwidthMeter.getUsedMB(), limitMB
+                            context, isHost, bandwidthMeter.getUsedMB(), limitMB, bandwidthMeter.speedMbps.value
                         )
                     } else if (state == WebRTCConnectionState.DISCONNECTED || state == WebRTCConnectionState.FAILED) {
                         disconnect()
@@ -122,7 +128,7 @@ class ActiveSessionViewModel @Inject constructor(
         _connectionState.value = WebRTCConnectionState.CONNECTED
         startSessionTracking()
         BandwidthSharingService.startService(
-            context, isSessionHost, bandwidthMeter.getUsedMB(), sessionLimitMB
+            context, isSessionHost, bandwidthMeter.getUsedMB(), sessionLimitMB, bandwidthMeter.speedMbps.value
         )
     }
 
@@ -151,7 +157,7 @@ class ActiveSessionViewModel @Inject constructor(
                 _progressPercent.value = bandwidthMeter.getProgressPercent(sessionLimitMB)
 
                 BandwidthSharingService.updateService(
-                    context, isSessionHost, used, sessionLimitMB
+                    context, isSessionHost, used, sessionLimitMB, bandwidthMeter.speedMbps.value
                 )
 
                 if (used >= sessionLimitMB) {

@@ -1,5 +1,6 @@
 package com.example.ui.active
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -43,6 +44,34 @@ fun ActiveSessionScreen(
     val isSimulating by viewModel.isSimulating.collectAsState()
 
     var testUrlInput by remember { mutableStateOf("https://api.github.com/zen") }
+    var showExitConfirmation by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = connectionState == WebRTCConnectionState.CONNECTED) {
+        showExitConfirmation = true
+    }
+
+    if (showExitConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showExitConfirmation = false },
+            title = { Text("End Active Session?") },
+            text = { Text("Navigating back will stop sharing/using bandwidth. If you want to keep sharing in the background, press your device's Home button instead.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showExitConfirmation = false
+                        viewModel.disconnect()
+                    }
+                ) {
+                    Text("End Session", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitConfirmation = false }) {
+                    Text("Keep Active")
+                }
+            }
+        )
+    }
 
     LaunchedEffect(token, isHost, limitMB) {
         viewModel.initSession(token, isHost, limitMB)
@@ -138,9 +167,9 @@ fun ActiveSessionScreen(
                     )
                     Text(
                         text = if (isHost) {
-                            "You are currently SHARING bandwidth. Do not close this screen or put the app to background to maintain the tunnel."
+                            "You are currently SHARING bandwidth. Tap your device's Home button to share in the background. The active speed and bandwidth statistics will show in your notification bar."
                         } else {
-                            "You are currently USING shared bandwidth. All requests typed below route through the peer's connection."
+                            "You are currently USING shared bandwidth. All requests typed below route through the peer's connection. You can monitor progress in your notification bar."
                         },
                         fontSize = 14.sp,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
