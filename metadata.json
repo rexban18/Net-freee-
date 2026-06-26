@@ -1,0 +1,6 @@
+{
+  "name": "NetShare",
+  "description": "Peer-to-peer mobile bandwidth sharing app using WebRTC and Firebase",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">NetShare</string>
+    
+    <!-- Firebase configuration strings for auto-initialization without google-services.json -->
+    <string name="google_app_id" translatable="false">1:750786258749:android:4do37cheyycgzhorwmdflr</string>
+    <string name="google_api_key" translatable="false">AIzaSyDummyKeyForOfflineNetShareApp</string>
+    <string name="firebase_database_url" translatable="false">https://ais-dev-4do37cheyycgzhorwmdflr.firebaseio.com</string>
+    <string name="project_id" translatable="false">ais-dev-4do37cheyycgzhorwmdflr</string>
+    <string name="gcm_defaultSenderId" translatable="false">750786258749</string>
+</resources>
